@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Rompecabezas Frozen</title>
+<title>Rompecabezas de Animales</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -13,7 +13,7 @@ body{
     overflow:hidden;
 }
 
-/* INICIO */
+/* PANTALLA INICIO */
 #startScreen{
     position:fixed;
     inset:0;
@@ -53,7 +53,7 @@ body{
     width:300px;
     height:300px;
     margin:20px auto;
-    border:4px solid #1e88e5;
+    border:4px solid #2196f3;
     background-size:cover;
     background-position:center;
 }
@@ -64,7 +64,7 @@ body{
     height:100px;
     background-size:300px 300px;
     cursor:grab;
-    border:1px solid white;
+    border:1px solid #fff;
 }
 
 /* GANASTE */
@@ -114,7 +114,7 @@ body{
 
 <!-- INICIO -->
 <div id="startScreen">
-    <h1>❄️ Rompecabezas Frozen ❄️</h1>
+    <h1>🧩 Rompecabezas de Animales 🐶🐱</h1>
     <input type="text" id="usernameInput" placeholder="Tu nombre">
     <button onclick="startGame()">Jugar</button>
 </div>
@@ -135,16 +135,17 @@ body{
 </div>
 
 <script>
-/* ================= IMÁGENES FROZEN ================= */
+/* ================= IMÁGENES DE ANIMALES ================= */
+// Imágenes públicas y estables
 const baseImages=[
-    "https://i.imgur.com/7qV9FZL.jpg", // Elsa
-    "https://i.imgur.com/Z9xJ0cM.jpg", // Anna
-    "https://i.imgur.com/3rZ3K0n.jpg", // Olaf
-    "https://i.imgur.com/qYF1X8U.jpg", // Elsa
-    "https://i.imgur.com/VN0M6hM.jpg"  // Grupo
+    "https://images.unsplash.com/photo-1518717758536-85ae29035b6d", // perro
+    "https://images.unsplash.com/photo-1518791841217-8f162f1e1131", // gato
+    "https://images.unsplash.com/photo-1501706362039-c6e80948a59a", // león
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee", // elefante
+    "https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0"  // caballo
 ];
 
-// 200 combinaciones
+// Generamos 200 niveles
 const images=[];
 for(let i=0;i<200;i++){
     images.push(baseImages[i % baseImages.length]);
@@ -164,15 +165,13 @@ function startGame(){
     }
 
     username=input.value.trim();
-    localStorage.setItem("frozen_user",username);
-    localStorage.setItem(username+"_level",currentLevel);
-
     document.getElementById("playerName").textContent=username;
+
+    const savedLevel=localStorage.getItem("animal_level_"+username);
+    if(savedLevel) currentLevel=parseInt(savedLevel);
+
     document.getElementById("startScreen").style.display="none";
     document.getElementById("game").style.display="block";
-
-    const savedLevel=localStorage.getItem(username+"_level");
-    if(savedLevel) currentLevel=parseInt(savedLevel);
 
     loadLevel();
 }
@@ -244,17 +243,18 @@ function checkWin(){
 /* ================= GANASTE ================= */
 function showWin(){
     document.getElementById("winText").textContent=
-        `❄️ FELICIDADES ${username} GANASTE !!!! ❄️`;
+        `🎉 FELICIDADES ${username} GANASTE !!!! 🎉`;
 
     document.getElementById("winScreen").style.display="flex";
     startConfetti();
 }
 
+/* ================= SIGUIENTE ================= */
 function nextLevel(){
     document.getElementById("winScreen").style.display="none";
     currentLevel++;
     if(currentLevel>=200) currentLevel=0;
-    localStorage.setItem(username+"_level",currentLevel);
+    localStorage.setItem("animal_level_"+username,currentLevel);
     loadLevel();
 }
 
@@ -270,16 +270,11 @@ function startConfetti(){
         setTimeout(()=>el.remove(),5000);
     }
 }
-
-/* ================= AUTO USER ================= */
-window.onload=()=>{
-    const saved=localStorage.getItem("frozen_user");
-    if(saved) document.getElementById("usernameInput").value=saved;
-};
 </script>
 
 </body>
 </html>
+
 
 
 
