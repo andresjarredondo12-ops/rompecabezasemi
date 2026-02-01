@@ -6,107 +6,106 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(#b3e5ff, #ffffff);
-    overflow: hidden;
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:linear-gradient(#b3e5ff,#ffffff);
+    overflow:hidden;
 }
 
 /* INICIO */
-#startScreen {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+#startScreen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
 }
 
-#startScreen input {
-    padding: 12px;
-    font-size: 18px;
-    margin-top: 10px;
+#startScreen input{
+    padding:12px;
+    font-size:18px;
+    margin-top:10px;
 }
 
-#startScreen button {
-    margin-top: 15px;
-    padding: 12px 25px;
-    font-size: 18px;
-    cursor: pointer;
+#startScreen button{
+    margin-top:15px;
+    padding:12px 25px;
+    font-size:18px;
+    cursor:pointer;
 }
 
 /* JUEGO */
-#game {
-    display: none;
-    padding: 10px;
+#game{
+    display:none;
+    padding:10px;
 }
 
-#topBar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 18px;
+#topBar{
+    display:flex;
+    justify-content:space-between;
+    font-size:18px;
 }
 
-#puzzleContainer {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    margin: 20px auto;
-    border: 4px solid #1e88e5;
-    background-size: cover;
-    background-position: center;
+#puzzleContainer{
+    position:relative;
+    width:300px;
+    height:300px;
+    margin:20px auto;
+    border:4px solid #1e88e5;
+    background-size:cover;
+    background-position:center;
 }
 
-.piece {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    background-size: 300px 300px;
-    cursor: grab;
-    border: 1px solid white;
+.piece{
+    position:absolute;
+    width:100px;
+    height:100px;
+    background-size:300px 300px;
+    cursor:grab;
+    border:1px solid white;
 }
 
-/* PANTALLA GANADORA */
-#winScreen {
-    position: fixed;
-    inset: 0;
-    background: linear-gradient(#0d47a1, #42a5f5);
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 10;
-    color: white;
-    text-align: center;
+/* GANASTE */
+#winScreen{
+    position:fixed;
+    inset:0;
+    background:linear-gradient(#0d47a1,#42a5f5);
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    z-index:10;
+    color:white;
+    text-align:center;
 }
 
-#winScreen h1 {
-    font-size: 34px;
-    margin-bottom: 20px;
+#winScreen h1{
+    font-size:32px;
+    margin-bottom:20px;
 }
 
-#winScreen button {
-    padding: 14px 30px;
-    font-size: 18px;
-    cursor: pointer;
-    border: none;
-    background: #ffffff;
-    color: #0d47a1;
-    border-radius: 6px;
+#winScreen button{
+    padding:14px 30px;
+    font-size:18px;
+    cursor:pointer;
+    border:none;
+    background:white;
+    color:#0d47a1;
+    border-radius:6px;
 }
 
 /* CONFETI */
-.fall {
-    position: fixed;
-    top: -20px;
-    font-size: 26px;
-    animation: fall linear forwards;
+.fall{
+    position:fixed;
+    top:-20px;
+    font-size:26px;
+    animation:fall linear forwards;
 }
 
-@keyframes fall {
-    to { transform: translateY(110vh); }
+@keyframes fall{
+    to{ transform:translateY(110vh); }
 }
 </style>
 </head>
@@ -136,68 +135,68 @@ body {
 </div>
 
 <script>
-/* ================= CONFIG ================= */
-
-// 5 imágenes base Frozen
-const baseImages = [
+/* ================= IMÁGENES FROZEN ================= */
+const baseImages=[
     "https://i.imgur.com/7qV9FZL.jpg", // Elsa
     "https://i.imgur.com/Z9xJ0cM.jpg", // Anna
     "https://i.imgur.com/3rZ3K0n.jpg", // Olaf
-    "https://i.imgur.com/qYF1X8U.jpg", // Elsa 2
+    "https://i.imgur.com/qYF1X8U.jpg", // Elsa
     "https://i.imgur.com/VN0M6hM.jpg"  // Grupo
 ];
 
-// Genera 200 combinaciones
-const images = [];
-for (let i = 0; i < 200; i++) {
+// 200 combinaciones
+const images=[];
+for(let i=0;i<200;i++){
     images.push(baseImages[i % baseImages.length]);
 }
 
-const size = 3;
-let currentLevel = 0;
-let pieces = [];
-let username = "";
+const size=3;
+let currentLevel=0;
+let pieces=[];
+let username="";
 
 /* ================= INICIO ================= */
-
-function startGame() {
-    const input = document.getElementById("usernameInput");
-    if (!input.value.trim()) {
+function startGame(){
+    const input=document.getElementById("usernameInput");
+    if(!input.value.trim()){
         alert("Ingresá tu nombre");
         return;
     }
 
-    username = input.value.trim();
-    localStorage.setItem("frozenUser", username);
+    username=input.value.trim();
+    localStorage.setItem("frozen_user",username);
+    localStorage.setItem(username+"_level",currentLevel);
 
-    document.getElementById("playerName").textContent = username;
-    document.getElementById("startScreen").style.display = "none";
-    document.getElementById("game").style.display = "block";
+    document.getElementById("playerName").textContent=username;
+    document.getElementById("startScreen").style.display="none";
+    document.getElementById("game").style.display="block";
+
+    const savedLevel=localStorage.getItem(username+"_level");
+    if(savedLevel) currentLevel=parseInt(savedLevel);
 
     loadLevel();
 }
 
 /* ================= NIVEL ================= */
+function loadLevel(){
+    const container=document.getElementById("puzzleContainer");
+    container.innerHTML="";
+    pieces=[];
 
-function loadLevel() {
-    const container = document.getElementById("puzzleContainer");
-    container.innerHTML = "";
-    pieces = [];
+    const img=images[currentLevel];
+    container.style.backgroundImage=`url(${img})`;
 
-    const img = images[currentLevel];
-    container.style.backgroundImage = `url(${img})`;
+    for(let y=0;y<size;y++){
+        for(let x=0;x<size;x++){
+            const piece=document.createElement("div");
+            piece.className="piece";
+            piece.style.backgroundImage=`url(${img})`;
+            piece.style.backgroundPosition=`-${x*100}px -${y*100}px`;
+            piece.dataset.correctX=x*100;
+            piece.dataset.correctY=y*100;
 
-    for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-            const piece = document.createElement("div");
-            piece.className = "piece";
-            piece.style.backgroundImage = `url(${img})`;
-            piece.style.backgroundPosition = `-${x*100}px -${y*100}px`;
-            piece.dataset.correctX = x * 100;
-            piece.dataset.correctY = y * 100;
-
-            piece.style.left = Math.random()*200 + "px";
-            piece.style.top = Math.random()*200 + "px";
+            piece.style.left=Math.random()*200+"px";
+            piece.style.top=Math.random()*200+"px";
 
             enableDrag(piece);
             container.appendChild(piece);
@@ -205,92 +204,84 @@ function loadLevel() {
         }
     }
 
-    document.getElementById("level").textContent = currentLevel + 1;
+    document.getElementById("level").textContent=currentLevel+1;
 }
 
 /* ================= DRAG ================= */
+function enableDrag(el){
+    let offsetX,offsetY;
 
-function enableDrag(el) {
-    let offsetX, offsetY;
+    el.onmousedown=e=>{
+        offsetX=e.offsetX;
+        offsetY=e.offsetY;
 
-    el.onmousedown = e => {
-        offsetX = e.offsetX;
-        offsetY = e.offsetY;
-
-        document.onmousemove = ev => {
-            el.style.left = (ev.pageX - puzzleContainer.offsetLeft - offsetX) + "px";
-            el.style.top = (ev.pageY - puzzleContainer.offsetTop - offsetY) + "px";
+        document.onmousemove=ev=>{
+            el.style.left=(ev.pageX-puzzleContainer.offsetLeft-offsetX)+"px";
+            el.style.top =(ev.pageY-puzzleContainer.offsetTop-offsetY)+"px";
         };
 
-        document.onmouseup = () => {
-            document.onmousemove = null;
-            document.onmouseup = null;
+        document.onmouseup=()=>{
+            document.onmousemove=null;
+            document.onmouseup=null;
             checkWin();
         };
     };
 }
 
 /* ================= CHECK ================= */
-
-function checkWin() {
-    let win = true;
-
-    pieces.forEach(p => {
-        if (
-            Math.abs(parseInt(p.style.left) - p.dataset.correctX) > 10 ||
-            Math.abs(parseInt(p.style.top) - p.dataset.correctY) > 10
-        ) win = false;
+function checkWin(){
+    let ok=true;
+    pieces.forEach(p=>{
+        if(
+            Math.abs(parseInt(p.style.left)-p.dataset.correctX)>10 ||
+            Math.abs(parseInt(p.style.top)-p.dataset.correctY)>10
+        ) ok=false;
     });
 
-    if (win) showWin();
+    if(ok) showWin();
 }
 
 /* ================= GANASTE ================= */
-
-function showWin() {
-    document.getElementById("winText").textContent =
+function showWin(){
+    document.getElementById("winText").textContent=
         `❄️ FELICIDADES ${username} GANASTE !!!! ❄️`;
 
-    document.getElementById("winScreen").style.display = "flex";
+    document.getElementById("winScreen").style.display="flex";
     startConfetti();
 }
 
-function nextLevel() {
-    document.getElementById("winScreen").style.display = "none";
+function nextLevel(){
+    document.getElementById("winScreen").style.display="none";
     currentLevel++;
-
-    if (currentLevel >= images.length) {
-        currentLevel = 0;
-    }
-
+    if(currentLevel>=200) currentLevel=0;
+    localStorage.setItem(username+"_level",currentLevel);
     loadLevel();
 }
 
 /* ================= CONFETI ================= */
-
-function startConfetti() {
-    for (let i = 0; i < 50; i++) {
-        const el = document.createElement("div");
-        el.className = "fall";
-        el.style.left = Math.random() * 100 + "vw";
-        el.style.animationDuration = (2 + Math.random()*3) + "s";
-        el.textContent = ["💖","❤️","⭐"][Math.floor(Math.random()*3)];
+function startConfetti(){
+    for(let i=0;i<50;i++){
+        const el=document.createElement("div");
+        el.className="fall";
+        el.style.left=Math.random()*100+"vw";
+        el.style.animationDuration=(2+Math.random()*3)+"s";
+        el.textContent=["💖","❤️","⭐"][Math.floor(Math.random()*3)];
         document.body.appendChild(el);
-
-        setTimeout(() => el.remove(), 5000);
+        setTimeout(()=>el.remove(),5000);
     }
 }
 
 /* ================= AUTO USER ================= */
-
-window.onload = () => {
-    const saved = localStorage.getItem("frozenUser");
-    if (saved) document.getElementById("usernameInput").value = saved;
+window.onload=()=>{
+    const saved=localStorage.getItem("frozen_user");
+    if(saved) document.getElementById("usernameInput").value=saved;
 };
 </script>
 
 </body>
 </html>
+
+
 
 
 
