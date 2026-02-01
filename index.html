@@ -1,261 +1,315 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Rompecabezas Frozen</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frozen Puzzle Adventure - 200 Niveles</title>
+    <style>
+        :root {
+            --frozen-blue: #00d4ff;
+            --gold: #ffd700;
+        }
 
-<style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(#b3e5fc, #e1f5fe);
-    text-align: center;
-    overflow: hidden;
-}
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: white;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
 
-.hidden { display: none; }
+        #login-screen, #game-screen, #victory-screen {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: absolute;
+        }
 
-input, button {
-    padding: 10px;
-    font-size: 16px;
-    margin-top: 10px;
-}
+        /* Pantalla de Inicio */
+        #login-screen { display: flex; background: linear-gradient(45deg, #001f3f, #0074D9); }
+        input { padding: 15px; border-radius: 25px; border: none; width: 250px; font-size: 1.1rem; margin-bottom: 20px; }
+        button { padding: 15px 40px; border-radius: 25px; border: none; background: var(--frozen-blue); color: white; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        button:hover { transform: scale(1.1); background: #fff; color: var(--frozen-blue); }
 
-button {
-    background: #0288d1;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
+        /* Área de Juego */
+        #puzzle-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            background: rgba(255,255,255,0.1);
+            border: 3px solid var(--frozen-blue);
+            box-shadow: 0 0 20px var(--frozen-blue);
+        }
 
-#board {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    margin: 20px auto;
-    border: 3px solid #0288d1;
-    background: #e1f5fe;
-}
+        .piece {
+            position: absolute;
+            cursor: grab;
+            border: 1px solid rgba(255,255,255,0.3);
+            box-sizing: border-box;
+        }
 
-.piece {
-    position: absolute;
-    width: 100px;
-    height: 100px;
-    cursor: grab;
-    background-repeat: no-repeat;
-}
+        .piece:active { cursor: grabbing; z-index: 100; }
 
-/* Pantalla ganadora */
-#winScreen {
-    position: fixed;
-    inset: 0;
-    background: rgba(179,229,252,0.95);
-    z-index: 999;
-}
+        /* Pantalla de Victoria */
+        #victory-screen {
+            background: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fcf6ba, #aa771c);
+            z-index: 1000;
+        }
 
-#winText {
-    margin-top: 120px;
-    font-size: 28px;
-    color: #01579b;
-}
+        #victory-screen h1 {
+            font-size: 3rem;
+            color: #5d4037;
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+            text-align: center;
+            padding: 20px;
+        }
 
-/* Lluvia */
-.fall {
-    position: fixed;
-    top: -40px;
-    animation: fall linear infinite;
-}
+        canvas#celebration-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
 
-@keyframes fall {
-    to { transform: translateY(110vh); }
-}
-</style>
+        #ui-layer { margin-bottom: 10px; text-align: center; }
+    </style>
 </head>
-
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-    <h1>❄️ Rompecabezas Frozen ❄️</h1>
-    <p>Ingresá tu nombre</p>
-    <input id="username" placeholder="Tu nombre">
-    <br>
-    <button onclick="startGame()">Jugar</button>
-</div>
+    <div id="login-screen">
+        <h1>FROZEN PUZZLE</h1>
+        <p>Ingresa tu nombre para comenzar la aventura</p>
+        <input type="text" id="username" placeholder="Nombre de usuario...">
+        <button onclick="startGame()">ENTRAR</button>
+    </div>
 
-<!-- JUEGO -->
-<div id="game" class="hidden">
-    <h2 id="playerName"></h2>
-    <div id="board"></div>
-</div>
+    <div id="game-screen">
+        <div id="ui-layer">
+            <h2 id="display-user"></h2>
+            <h3>Nivel: <span id="display-level">1</span> / 200</h3>
+        </div>
+        <div id="puzzle-container"></div>
+    </div>
 
-<!-- GANASTE -->
-<div id="winScreen" class="hidden">
-    <div id="winText"></div>
-</div>
+    <div id="victory-screen">
+        <canvas id="celebration-canvas"></canvas>
+        <h1 id="victory-text"></h1>
+        <button onclick="nextLevel()">SIGUIENTE NIVEL</button>
+    </div>
 
-<script>
-/* =========================
-   IMÁGENES FROZEN (REALES)
-========================= */
+    <script>
+        let currentUser = "";
+        let currentLevel = 1;
+        let pieces = [];
+        let rows = 2, cols = 2; // Empieza fácil
+        const container = document.getElementById('puzzle-container');
+        const canvas = document.getElementById('celebration-canvas');
+        const ctx = canvas.getContext('2d');
 
-const FROZEN_IMAGES = [
-    "https://upload.wikimedia.org/wikipedia/en/0/05/Elsa_from_Frozen_II.png",
-    "https://upload.wikimedia.org/wikipedia/en/3/3a/Anna_from_Frozen_II.png",
-    "https://upload.wikimedia.org/wikipedia/en/6/6e/Olaf_from_Frozen.png"
-];
+        // Imágenes temáticas de Frozen para los niveles
+        const images = [
+            'https://images.alphacoders.com/105/1052639.jpg',
+            'https://images.alphacoders.com/105/1055018.jpg',
+            'https://images.alphacoders.com/469/469145.jpg',
+            'https://images.alphacoders.com/605/605151.jpg'
+        ];
 
-const SIZE = 3;      // 3x3
-const PIECE = 100;   // tamaño pieza
+        function startGame() {
+            const input = document.getElementById('username').value;
+            if (!input) return alert("Escribe tu nombre");
+            
+            currentUser = input;
+            // "Base de datos" en LocalStorage
+            const savedData = JSON.parse(localStorage.getItem('frozen_puzzles_db')) || {};
+            if (savedData[currentUser]) {
+                currentLevel = savedData[currentUser].level;
+            } else {
+                currentLevel = 1;
+                savedData[currentUser] = { level: 1 };
+                localStorage.setItem('frozen_puzzles_db', JSON.stringify(savedData));
+            }
 
-let user = "";
-let placedCorrectly = 0;
-let board;
-
-/* =========================
-   INICIO
-========================= */
-
-function startGame() {
-    user = document.getElementById("username").value.trim();
-    if (!user) return alert("Ingresá tu nombre");
-
-    document.getElementById("login").classList.add("hidden");
-    document.getElementById("game").classList.remove("hidden");
-    document.getElementById("playerName").innerText = "Jugador: " + user;
-
-    board = document.getElementById("board");
-    loadPuzzle();
-}
-
-/* =========================
-   PUZZLE
-========================= */
-
-function loadPuzzle() {
-    board.innerHTML = "";
-    placedCorrectly = 0;
-
-    const img = FROZEN_IMAGES[Math.floor(Math.random() * FROZEN_IMAGES.length)];
-
-    let positions = [];
-    for (let y = 0; y < SIZE; y++) {
-        for (let x = 0; x < SIZE; x++) {
-            positions.push({x, y});
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            initLevel();
         }
-    }
 
-    positions.sort(() => Math.random() - 0.5);
+        function initLevel() {
+            container.innerHTML = "";
+            document.getElementById('display-user').innerText = `Jugador: ${currentUser}`;
+            document.getElementById('display-level').innerText = currentLevel;
+            
+            // Aumentar dificultad cada 5 niveles
+            cols = 2 + Math.floor(currentLevel / 10);
+            rows = 2 + Math.floor(currentLevel / 10);
+            
+            const imgUrl = images[currentLevel % images.length];
+            const pieceWidth = 500 / cols;
+            const pieceHeight = 500 / rows;
 
-    let index = 0;
-    for (let y = 0; y < SIZE; y++) {
-        for (let x = 0; x < SIZE; x++) {
-            const piece = document.createElement("div");
-            piece.className = "piece";
+            pieces = [];
 
-            piece.dataset.correctX = x;
-            piece.dataset.correctY = y;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const piece = document.createElement('div');
+                    piece.className = 'piece';
+                    piece.style.width = pieceWidth + 'px';
+                    piece.style.height = pieceHeight + 'px';
+                    piece.style.backgroundImage = `url(${imgUrl})`;
+                    piece.style.backgroundSize = `500px 500px`;
+                    piece.style.backgroundPosition = `-${c * pieceWidth}px -${r * pieceHeight}px`;
+                    
+                    // Posición inicial aleatoria (desordenado)
+                    const startX = Math.random() * (window.innerWidth - pieceWidth);
+                    const startY = Math.random() * (window.innerHeight - pieceHeight);
+                    
+                    piece.style.left = startX + 'px';
+                    piece.style.top = startY + 'px';
 
-            piece.style.backgroundImage = `url(${img})`;
-            piece.style.backgroundSize = `${SIZE * PIECE}px ${SIZE * PIECE}px`;
-            piece.style.backgroundPosition = `-${x * PIECE}px -${y * PIECE}px`;
-
-            piece.style.left = positions[index].x * PIECE + "px";
-            piece.style.top = positions[index].y * PIECE + "px";
-
-            makeDraggable(piece);
-            board.appendChild(piece);
-            index++;
+                    // Datos de destino
+                    piece.dataset.correctX = c * pieceWidth;
+                    piece.dataset.correctY = r * pieceHeight;
+                    
+                    makeDraggable(piece);
+                    container.appendChild(piece);
+                    pieces.push(piece);
+                }
+            }
         }
-    }
-}
 
-/* =========================
-   DRAG & DROP
-========================= */
+        function makeDraggable(el) {
+            let isDragging = false;
+            let offset = { x: 0, y: 0 };
 
-function makeDraggable(el) {
-    let offsetX, offsetY;
+            el.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                const rect = el.getBoundingClientRect();
+                offset.x = e.clientX - rect.left;
+                offset.y = e.clientY - rect.top;
+                el.style.zIndex = 1000;
+            });
 
-    el.onmousedown = e => {
-        offsetX = e.offsetX;
-        offsetY = e.offsetY;
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                el.style.left = (e.clientX - offset.x) + 'px';
+                el.style.top = (e.clientY - offset.y) + 'px';
+            });
 
-        document.onmousemove = move;
-        document.onmouseup = drop;
-    };
-
-    el.ontouchstart = e => {
-        const t = e.touches[0];
-        const rect = el.getBoundingClientRect();
-        offsetX = t.clientX - rect.left;
-        offsetY = t.clientY - rect.top;
-
-        document.ontouchmove = moveTouch;
-        document.ontouchend = drop;
-    };
-
-    function move(e) {
-        el.style.left = (e.pageX - offsetX - board.offsetLeft) + "px";
-        el.style.top = (e.pageY - offsetY - board.offsetTop) + "px";
-    }
-
-    function moveTouch(e) {
-        const t = e.touches[0];
-        el.style.left = (t.pageX - offsetX - board.offsetLeft) + "px";
-        el.style.top = (t.pageY - offsetY - board.offsetTop) + "px";
-    }
-
-    function drop() {
-        document.onmousemove = null;
-        document.onmouseup = null;
-        document.ontouchmove = null;
-        document.ontouchend = null;
-
-        const x = Math.round(el.offsetLeft / PIECE);
-        const y = Math.round(el.offsetTop / PIECE);
-
-        el.style.left = x * PIECE + "px";
-        el.style.top = y * PIECE + "px";
-
-        if (x == el.dataset.correctX && y == el.dataset.correctY) {
-            el.onmousedown = null;
-            el.ontouchstart = null;
-            placedCorrectly++;
-            if (placedCorrectly === SIZE * SIZE) win();
+            document.addEventListener('mouseup', () => {
+                if (!isDragging) return;
+                isDragging = false;
+                checkPiece(el);
+            });
         }
-    }
-}
 
-/* =========================
-   GANASTE
-========================= */
+        function checkPiece(el) {
+            const containerRect = container.getBoundingClientRect();
+            const currentX = parseFloat(el.style.left) - containerRect.left;
+            const currentY = parseFloat(el.style.top) - containerRect.top;
+            
+            const targetX = parseFloat(el.dataset.correctX);
+            const targetY = parseFloat(el.dataset.correctY);
 
-function win() {
-    document.getElementById("winScreen").classList.remove("hidden");
-    document.getElementById("winText").innerText =
-        `🎉 Felicidades ${user}, ganaste!!!! 🎉`;
+            // Si está cerca del lugar correcto (margen de 20px), encajar
+            if (Math.abs(currentX - targetX) < 25 && Math.abs(currentY - targetY) < 25) {
+                el.style.left = (containerRect.left + targetX) + 'px';
+                el.style.top = (containerRect.top + targetY) + 'px';
+                el.classList.add('locked');
+                checkWin();
+            }
+        }
 
-    for (let i = 0; i < 60; i++) rain();
-}
+        function checkWin() {
+            const locked = document.querySelectorAll('.locked').length;
+            if (locked === pieces.length) {
+                showVictory();
+            }
+        }
 
-function rain() {
-    const el = document.createElement("div");
-    const icons = ["❤️", "💗", "⭐"];
-    el.innerText = icons[Math.floor(Math.random() * icons.length)];
-    el.className = "fall";
-    el.style.left = Math.random() * 100 + "vw";
-    el.style.fontSize = 18 + Math.random() * 22 + "px";
-    el.style.animationDuration = 2 + Math.random() * 3 + "s";
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 5000);
-}
-</script>
+        // --- EFECTOS DE VICTORIA ---
+        let particles = [];
+        function showVictory() {
+            document.getElementById('victory-text').innerText = `¡¡¡FELICIDADES GANASTE ${currentUser.toUpperCase()}!!!`;
+            document.getElementById('victory-screen').style.display = 'flex';
+            
+            // Guardar progreso
+            currentLevel++;
+            const savedData = JSON.parse(localStorage.getItem('frozen_puzzles_db'));
+            savedData[currentUser].level = currentLevel;
+            localStorage.setItem('frozen_puzzles_db', JSON.stringify(savedData));
 
+            // Iniciar lluvia
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            createParticles();
+            animateParticles();
+        }
+
+        function createParticles() {
+            particles = [];
+            for (let i = 0; i < 150; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height - canvas.height,
+                    type: Math.random() > 0.5 ? 'heart' : 'star',
+                    color: ['#ff4d6d', '#ff0000', '#00d4ff'][Math.floor(Math.random() * 3)],
+                    size: Math.random() * 15 + 10,
+                    speed: Math.random() * 3 + 2
+                });
+            }
+        }
+
+        function drawHeart(x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.bezierCurveTo(x, y - size/2, x - size, y - size/2, x - size, y);
+            ctx.bezierCurveTo(x - size, y + size/2, x, y + size, x, y + size);
+            ctx.bezierCurveTo(x, y + size, x + size, y + size/2, x + size, y);
+            ctx.bezierCurveTo(x + size, y - size/2, x, y - size/2, x, y);
+            ctx.fill();
+        }
+
+        function drawStar(x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * size + x,
+                           Math.sin((18 + i * 72) * Math.PI / 180) * size + y);
+                ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (size/2) + x,
+                           Math.sin((54 + i * 72) * Math.PI / 180) * (size/2) + y);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                if (p.type === 'heart') drawHeart(p.x, p.y, p.size, p.color);
+                else drawStar(p.x, p.y, p.size, p.color);
+                p.y += p.speed;
+                if (p.y > canvas.height) p.y = -20;
+            });
+            if (document.getElementById('victory-screen').style.display === 'flex') {
+                requestAnimationFrame(animateParticles);
+            }
+        }
+
+        function nextLevel() {
+            document.getElementById('victory-screen').style.display = 'none';
+            initLevel();
+        }
+    </script>
 </body>
 </html>
+
 
 
 
