@@ -2,276 +2,260 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<title>Rompecabezas Frozen</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Frozen Puzzle - 200 Niveles</title>
 
 <style>
-:root {
-    --frozen-blue: #00d4ff;
-    --ice-white: #f0f8ff;
-    --gold-bg: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fcf6ba, #aa771c);
-}
-
 body {
     margin: 0;
     font-family: Arial, sans-serif;
-    background: #0a192f;
-    color: white;
+    background: linear-gradient(#b3e5ff, #ffffff);
     overflow: hidden;
 }
 
-#login-screen {
-    text-align: center;
-    background: rgba(0,0,0,.7);
-    padding: 40px;
-    border-radius: 20px;
-    border: 2px solid var(--frozen-blue);
-    box-shadow: 0 0 30px var(--frozen-blue);
-}
-
-input, button {
-    padding: 15px;
-    font-size: 1.2rem;
-    border-radius: 10px;
-    border: none;
-    margin-top: 15px;
-}
-
-button {
-    background: var(--frozen-blue);
-    color: white;
-    cursor: pointer;
-}
-
-#game-screen {
-    display: none;
-    flex-direction: column;
-    align-items: center;
-}
-
-#puzzle-board {
-    width: 500px;
-    height: 500px;
-    position: relative;
-    margin-top: 20px;
-    border: 4px solid var(--frozen-blue);
-}
-
-.piece {
-    position: absolute;
-    cursor: grab;
-    background-repeat: no-repeat;
-}
-
-#victory-screen {
-    display: none;
+/* PANTALLA INICIO */
+#startScreen {
     position: fixed;
     inset: 0;
-    background: var(--gold-bg);
-    z-index: 100;
+    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 
-#victory-text {
-    font-size: 3rem;
-    color: #5d4037;
+#startScreen input {
+    padding: 12px;
+    font-size: 18px;
+    margin-top: 10px;
 }
 
-canvas {
+#startScreen button {
+    margin-top: 15px;
+    padding: 12px 25px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+/* JUEGO */
+#game {
+    display: none;
+    padding: 10px;
+}
+
+#topBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#puzzleContainer {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 20px auto;
+    border: 3px solid #2196f3;
+    background-size: cover;
+}
+
+.piece {
     position: absolute;
+    width: 100px;
+    height: 100px;
+    background-size: 300px 300px;
+    cursor: grab;
+    border: 1px solid #fff;
+}
+
+/* GANASTE */
+#winScreen {
+    position: fixed;
     inset: 0;
-    pointer-events: none;
+    background: rgba(255,255,255,0.95);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#winScreen h1 {
+    font-size: 32px;
+    color: #e91e63;
+}
+
+/* CONFETI */
+.fall {
+    position: fixed;
+    top: -20px;
+    font-size: 24px;
+    animation: fall 4s linear infinite;
+}
+
+@keyframes fall {
+    to {
+        transform: translateY(110vh);
+    }
 }
 </style>
 </head>
 
 <body>
 
-<div id="login-screen">
-    <h1>❄️ FROZEN ADVENTURE ❄️</h1>
-    <input id="username" placeholder="Tu nombre">
-    <br>
-    <button onclick="initPlayer()">COMENZAR</button>
+<!-- INICIO -->
+<div id="startScreen">
+    <h1>🧩 Rompecabezas Frozen</h1>
+    <input type="text" id="usernameInput" placeholder="Tu nombre">
+    <button onclick="startGame()">Jugar</button>
 </div>
 
-<div id="game-screen">
-    <h2 id="user-name"></h2>
-    <h3>Nivel <span id="level-num">1</span> / 200</h3>
-    <div id="puzzle-board"></div>
+<!-- JUEGO -->
+<div id="game">
+    <div id="topBar">
+        <div>Jugador: <b id="playerName"></b></div>
+        <div>Nivel: <b id="level">1</b></div>
+    </div>
+
+    <div id="puzzleContainer"></div>
 </div>
 
-<div id="victory-screen">
-    <canvas id="particle-canvas"></canvas>
-    <h1 id="victory-text"></h1>
-    <button onclick="nextLevel()">SIGUIENTE NIVEL</button>
+<!-- GANASTE -->
+<div id="winScreen">
+    <h1 id="winText"></h1>
+    <button onclick="nextLevel()">Siguiente nivel</button>
 </div>
 
 <script>
-let user = "";
-let level = 1;
-const dbKey = "frozen_progress";
-const board = document.getElementById("puzzle-board");
-
-/* IMÁGENES REALES DE FROZEN */
-const frozenImages = [
-    "https://wallpaperaccess.com/full/1595180.jpg", // Elsa
-    "https://wallpaperaccess.com/full/1595182.jpg", // Anna
-    "https://wallpaperaccess.com/full/192271.jpg",  // Olaf
-    "https://wallpaperaccess.com/full/192283.jpg",
-    "https://wallpaperaccess.com/full/1595208.jpg"
+/* === CONFIG === */
+const images = [
+    "https://i.imgur.com/7qV9FZL.jpg", // Elsa
+    "https://i.imgur.com/Z9xJ0cM.jpg", // Anna
+    "https://i.imgur.com/3rZ3K0n.jpg", // Olaf
+    "https://i.imgur.com/qYF1X8U.jpg", // Elsa 2
+    "https://i.imgur.com/VN0M6hM.jpg"  // Frozen grupo
 ];
+// podés repetir / agregar hasta 200 imágenes
 
-function initPlayer() {
-    user = username.value.trim();
-    if (!user) return alert("Ingresá tu nombre");
+const size = 3;
+let currentLevel = 0;
+let pieces = [];
+let username = "";
 
-    let db = JSON.parse(localStorage.getItem(dbKey)) || {};
-    if (db[user]) level = db[user];
-    else db[user] = 1;
+/* === INICIO === */
+function startGame() {
+    const input = document.getElementById("usernameInput");
+    if (!input.value.trim()) return alert("Ingresá tu nombre");
 
-    localStorage.setItem(dbKey, JSON.stringify(db));
+    username = input.value.trim();
+    localStorage.setItem("frozenUser", username);
 
-    login-screen.style.display = "none";
-    game-screen.style.display = "flex";
+    document.getElementById("playerName").textContent = username;
+    document.getElementById("startScreen").style.display = "none";
+    document.getElementById("game").style.display = "block";
 
-    document.getElementById("user-name").innerText = "Jugador: " + user;
     loadLevel();
 }
 
+/* === CARGA NIVEL === */
 function loadLevel() {
-    board.innerHTML = "";
-    document.getElementById("level-num").innerText = level;
+    const container = document.getElementById("puzzleContainer");
+    container.innerHTML = "";
+    pieces = [];
 
-    let size = Math.min(2 + Math.floor(level / 10), 8);
-    const img = frozenImages[(level - 1) % frozenImages.length];
-    const pieceSize = 500 / size;
+    const img = images[currentLevel % images.length];
+    container.style.backgroundImage = `url(${img})`;
 
-    let positions = [];
-    for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-            positions.push({x,y});
-        }
-    }
-    positions.sort(() => Math.random() - 0.5);
-
-    let index = 0;
     for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
             const piece = document.createElement("div");
             piece.className = "piece";
-            piece.style.width = pieceSize + "px";
-            piece.style.height = pieceSize + "px";
             piece.style.backgroundImage = `url(${img})`;
-            piece.style.backgroundSize = "500px 500px";
-            piece.style.backgroundPosition = `-${x*pieceSize}px -${y*pieceSize}px`;
+            piece.style.backgroundPosition = `-${x*100}px -${y*100}px`;
+            piece.dataset.correctX = x * 100;
+            piece.dataset.correctY = y * 100;
 
-            piece.dataset.cx = x * pieceSize;
-            piece.dataset.cy = y * pieceSize;
+            piece.style.left = Math.random()*200 + "px";
+            piece.style.top = Math.random()*200 + "px";
 
-            piece.style.left = positions[index].x * pieceSize + "px";
-            piece.style.top = positions[index].y * pieceSize + "px";
-
-            drag(piece);
-            board.appendChild(piece);
-            index++;
+            enableDrag(piece);
+            container.appendChild(piece);
+            pieces.push(piece);
         }
     }
+
+    document.getElementById("level").textContent = currentLevel + 1;
 }
 
-function drag(el) {
-    let dx, dy, dragging = false;
+/* === DRAG === */
+function enableDrag(el) {
+    let offsetX, offsetY;
 
     el.onmousedown = e => {
-        dragging = true;
-        dx = e.offsetX;
-        dy = e.offsetY;
-        el.style.zIndex = 10;
-    };
+        offsetX = e.offsetX;
+        offsetY = e.offsetY;
 
-    document.onmousemove = e => {
-        if (!dragging) return;
-        el.style.left = e.pageX - board.offsetLeft - dx + "px";
-        el.style.top = e.pageY - board.offsetTop - dy + "px";
-    };
+        document.onmousemove = ev => {
+            el.style.left = (ev.pageX - puzzleContainer.offsetLeft - offsetX) + "px";
+            el.style.top  = (ev.pageY - puzzleContainer.offsetTop - offsetY) + "px";
+        };
 
-    document.onmouseup = () => {
-        if (!dragging) return;
-        dragging = false;
-
-        let x = Math.round(parseInt(el.style.left) / (500 / Math.sqrt(board.children.length)));
-        let y = Math.round(parseInt(el.style.top) / (500 / Math.sqrt(board.children.length)));
-
-        if (Math.abs(el.offsetLeft - el.dataset.cx) < 20 &&
-            Math.abs(el.offsetTop - el.dataset.cy) < 20) {
-
-            el.style.left = el.dataset.cx + "px";
-            el.style.top = el.dataset.cy + "px";
-            el.classList.add("fixed");
-            el.onmousedown = null;
-
+        document.onmouseup = () => {
+            document.onmousemove = null;
+            document.onmouseup = null;
             checkWin();
-        }
+        };
     };
 }
 
+/* === CHECK === */
 function checkWin() {
-    if (document.querySelectorAll(".fixed").length === board.children.length) {
-        showVictory();
-    }
+    let ok = true;
+    pieces.forEach(p => {
+        if (
+            Math.abs(parseInt(p.style.left) - p.dataset.correctX) > 10 ||
+            Math.abs(parseInt(p.style.top) - p.dataset.correctY) > 10
+        ) ok = false;
+    });
+
+    if (ok) showWin();
 }
 
-function showVictory() {
-    document.getElementById("victory-screen").style.display = "flex";
-    document.getElementById("victory-text").innerText =
-        `🎉 FELICIDADES ${user.toUpperCase()} GANASTE !!! 🎉`;
-    startParticles();
-
-    let db = JSON.parse(localStorage.getItem(dbKey));
-    db[user] = ++level;
-    localStorage.setItem(dbKey, JSON.stringify(db));
+/* === GANASTE === */
+function showWin() {
+    document.getElementById("winText").textContent =
+        `🎉 Felicidades ${username}, ganaste!!! 🎉`;
+    document.getElementById("winScreen").style.display = "flex";
+    startConfetti();
 }
 
 function nextLevel() {
-    document.getElementById("victory-screen").style.display = "none";
+    document.getElementById("winScreen").style.display = "none";
+    currentLevel++;
     loadLevel();
 }
 
-/* EFECTOS */
-function startParticles() {
-    const canvas = document.getElementById("particle-canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
+/* === CONFETI === */
+function startConfetti() {
+    for (let i = 0; i < 40; i++) {
+        const el = document.createElement("div");
+        el.className = "fall";
+        el.style.left = Math.random()*100 + "vw";
+        el.style.animationDuration = (2 + Math.random()*3) + "s";
+        el.textContent = ["💖","❤️","⭐"][Math.floor(Math.random()*3)];
+        document.body.appendChild(el);
 
-    let items = Array.from({length:80}, () => ({
-        x: Math.random()*canvas.width,
-        y: Math.random()*canvas.height,
-        s: Math.random()*20+10,
-        v: Math.random()*2+1,
-        t: Math.random()>0.5?"❤️":"⭐",
-        c: ["#ff4d6d","#ff0000","#00d4ff"][Math.floor(Math.random()*3)]
-    }));
-
-    function anim() {
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        items.forEach(p=>{
-            ctx.fillStyle=p.c;
-            ctx.font=p.s+"px Arial";
-            ctx.fillText(p.t,p.x,p.y);
-            p.y+=p.v;
-            if(p.y>canvas.height) p.y=-20;
-        });
-        requestAnimationFrame(anim);
+        setTimeout(() => el.remove(), 5000);
     }
-    anim();
 }
+
+/* === AUTO USER === */
+window.onload = () => {
+    const saved = localStorage.getItem("frozenUser");
+    if (saved) document.getElementById("usernameInput").value = saved;
+};
 </script>
 
 </body>
 </html>
-
 
 
 
