@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Frozen Puzzle</title>
+<title>Rompecabezas Frozen</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -27,6 +27,7 @@ button {
     color: white;
     border: none;
     border-radius: 6px;
+    cursor: pointer;
 }
 
 #board {
@@ -40,11 +41,13 @@ button {
 
 .piece {
     position: absolute;
+    width: 100px;
+    height: 100px;
     cursor: grab;
-    border: 1px solid #fff;
     background-repeat: no-repeat;
 }
 
+/* Pantalla ganadora */
 #winScreen {
     position: fixed;
     inset: 0;
@@ -58,10 +61,10 @@ button {
     color: #01579b;
 }
 
-/* LLUVIA */
+/* Lluvia */
 .fall {
     position: fixed;
-    top: -50px;
+    top: -40px;
     animation: fall linear infinite;
 }
 
@@ -75,9 +78,9 @@ button {
 
 <!-- LOGIN -->
 <div id="login">
-    <h1>❄️ Frozen Puzzle ❄️</h1>
+    <h1>❄️ Rompecabezas Frozen ❄️</h1>
     <p>Ingresá tu nombre</p>
-    <input id="username">
+    <input id="username" placeholder="Tu nombre">
     <br>
     <button onclick="startGame()">Jugar</button>
 </div>
@@ -94,23 +97,26 @@ button {
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+/* =========================
+   IMÁGENES FROZEN (REALES)
+========================= */
 
-const IMAGES = {
-    elsa: "https://i.imgur.com/2z8F0T4.jpg",
-    anna: "https://i.imgur.com/9QO8F0R.jpg",
-    olaf: "https://i.imgur.com/rz7FQ0T.jpg"
-};
+const FROZEN_IMAGES = [
+    "https://upload.wikimedia.org/wikipedia/en/0/05/Elsa_from_Frozen_II.png",
+    "https://upload.wikimedia.org/wikipedia/en/3/3a/Anna_from_Frozen_II.png",
+    "https://upload.wikimedia.org/wikipedia/en/6/6e/Olaf_from_Frozen.png"
+];
 
-const SIZE = 3;
-const PIECE = 100;
-
-/* ================= ESTADO ================= */
+const SIZE = 3;      // 3x3
+const PIECE = 100;   // tamaño pieza
 
 let user = "";
-let correct = 0;
+let placedCorrectly = 0;
+let board;
 
-/* ================= LOGIN ================= */
+/* =========================
+   INICIO
+========================= */
 
 function startGame() {
     user = document.getElementById("username").value.trim();
@@ -120,56 +126,57 @@ function startGame() {
     document.getElementById("game").classList.remove("hidden");
     document.getElementById("playerName").innerText = "Jugador: " + user;
 
+    board = document.getElementById("board");
     loadPuzzle();
 }
 
-/* ================= PUZZLE ================= */
+/* =========================
+   PUZZLE
+========================= */
 
 function loadPuzzle() {
-    const board = document.getElementById("board");
     board.innerHTML = "";
-    correct = 0;
+    placedCorrectly = 0;
 
-    const imgKeys = Object.keys(IMAGES);
-    const img = IMAGES[imgKeys[Math.floor(Math.random() * imgKeys.length)]];
+    const img = FROZEN_IMAGES[Math.floor(Math.random() * FROZEN_IMAGES.length)];
 
     let positions = [];
-
     for (let y = 0; y < SIZE; y++) {
         for (let x = 0; x < SIZE; x++) {
-            positions.push({ x, y });
+            positions.push({x, y});
         }
     }
 
     positions.sort(() => Math.random() - 0.5);
 
-    positions.forEach((pos, i) => {
-        const piece = document.createElement("div");
-        piece.className = "piece";
-        piece.style.width = PIECE + "px";
-        piece.style.height = PIECE + "px";
+    let index = 0;
+    for (let y = 0; y < SIZE; y++) {
+        for (let x = 0; x < SIZE; x++) {
+            const piece = document.createElement("div");
+            piece.className = "piece";
 
-        const correctX = i % SIZE;
-        const correctY = Math.floor(i / SIZE);
+            piece.dataset.correctX = x;
+            piece.dataset.correctY = y;
 
-        piece.dataset.correctX = correctX;
-        piece.dataset.correctY = correctY;
+            piece.style.backgroundImage = `url(${img})`;
+            piece.style.backgroundSize = `${SIZE * PIECE}px ${SIZE * PIECE}px`;
+            piece.style.backgroundPosition = `-${x * PIECE}px -${y * PIECE}px`;
 
-        piece.style.backgroundImage = `url(${img})`;
-        piece.style.backgroundSize = `${SIZE * PIECE}px ${SIZE * PIECE}px`;
-        piece.style.backgroundPosition = `-${correctX * PIECE}px -${correctY * PIECE}px`;
+            piece.style.left = positions[index].x * PIECE + "px";
+            piece.style.top = positions[index].y * PIECE + "px";
 
-        piece.style.left = pos.x * PIECE + "px";
-        piece.style.top = pos.y * PIECE + "px";
-
-        drag(piece);
-        board.appendChild(piece);
-    });
+            makeDraggable(piece);
+            board.appendChild(piece);
+            index++;
+        }
+    }
 }
 
-/* ================= DRAG ================= */
+/* =========================
+   DRAG & DROP
+========================= */
 
-function drag(el) {
+function makeDraggable(el) {
     let offsetX, offsetY;
 
     el.onmousedown = e => {
@@ -180,14 +187,32 @@ function drag(el) {
         document.onmouseup = drop;
     };
 
+    el.ontouchstart = e => {
+        const t = e.touches[0];
+        const rect = el.getBoundingClientRect();
+        offsetX = t.clientX - rect.left;
+        offsetY = t.clientY - rect.top;
+
+        document.ontouchmove = moveTouch;
+        document.ontouchend = drop;
+    };
+
     function move(e) {
         el.style.left = (e.pageX - offsetX - board.offsetLeft) + "px";
         el.style.top = (e.pageY - offsetY - board.offsetTop) + "px";
     }
 
+    function moveTouch(e) {
+        const t = e.touches[0];
+        el.style.left = (t.pageX - offsetX - board.offsetLeft) + "px";
+        el.style.top = (t.pageY - offsetY - board.offsetTop) + "px";
+    }
+
     function drop() {
         document.onmousemove = null;
         document.onmouseup = null;
+        document.ontouchmove = null;
+        document.ontouchend = null;
 
         const x = Math.round(el.offsetLeft / PIECE);
         const y = Math.round(el.offsetTop / PIECE);
@@ -197,20 +222,23 @@ function drag(el) {
 
         if (x == el.dataset.correctX && y == el.dataset.correctY) {
             el.onmousedown = null;
-            correct++;
-            if (correct === SIZE * SIZE) win();
+            el.ontouchstart = null;
+            placedCorrectly++;
+            if (placedCorrectly === SIZE * SIZE) win();
         }
     }
 }
 
-/* ================= GANASTE ================= */
+/* =========================
+   GANASTE
+========================= */
 
 function win() {
     document.getElementById("winScreen").classList.remove("hidden");
     document.getElementById("winText").innerText =
         `🎉 Felicidades ${user}, ganaste!!!! 🎉`;
 
-    for (let i = 0; i < 50; i++) rain();
+    for (let i = 0; i < 60; i++) rain();
 }
 
 function rain() {
@@ -219,16 +247,16 @@ function rain() {
     el.innerText = icons[Math.floor(Math.random() * icons.length)];
     el.className = "fall";
     el.style.left = Math.random() * 100 + "vw";
-    el.style.fontSize = 20 + Math.random() * 20 + "px";
+    el.style.fontSize = 18 + Math.random() * 22 + "px";
     el.style.animationDuration = 2 + Math.random() * 3 + "s";
     document.body.appendChild(el);
-
     setTimeout(() => el.remove(), 5000);
 }
 </script>
 
 </body>
 </html>
+
 
 
 
