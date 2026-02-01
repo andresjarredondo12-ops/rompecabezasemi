@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Rompecabezas Frozen</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(#b3e5fc, #e1f5fe);
+    text-align: center;
+}
+
+#login, #game {
+    padding: 20px;
+}
+
+input {
+    padding: 10px;
+    font-size: 16px;
+    width: 80%;
+    max-width: 300px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin-top: 10px;
+    background: #0288d1;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+#puzzle {
+    display: grid;
+    gap: 2px;
+    margin: 20px auto;
+    touch-action: manipulation;
+}
+
+.piece {
+    background-size: 100% 100%;
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}
+
+h1, h2 {
+    color: #01579b;
+}
+</style>
+</head>
+<body>
+
+<div id="login">
+    <h1>❄️ Rompecabezas Frozen ❄️</h1>
+    <p>Ingresá tu nombre para jugar</p>
+    <input id="username" placeholder="Tu nombre">
+    <br>
+    <button onclick="startGame()">Jugar</button>
+</div>
+
+<div id="game" class="hidden">
+    <h2 id="player"></h2>
+    <p>Nivel: <span id="level"></span> | Rompecabezas: <span id="puzzleNum"></span>/200</p>
+    <div id="puzzle"></div>
+    <button onclick="nextPuzzle()">Siguiente</button>
+</div>
+
+<script>
+// ================= DATOS =================
+
+const images = [
+    "https://i.imgur.com/9QO8F0R.jpg",
+    "https://i.imgur.com/rz7FQ0T.jpg",
+    "https://i.imgur.com/WbYb8wS.jpg",
+    "https://i.imgur.com/2z8F0T4.jpg",
+    "https://i.imgur.com/KQ9QF9g.jpg"
+];
+
+// 5 imágenes x 40 variaciones = 200 rompecabezas
+const TOTAL_PUZZLES = 200;
+
+// ================= ESTADO =================
+
+let user = "";
+let level = 1;
+let puzzleIndex = 0;
+let size = 3;
+let tiles = [];
+let emptyIndex = 0;
+
+// ================= LOGIN =================
+
+function startGame() {
+    const name = document.getElementById("username").value.trim();
+    if (!name) return alert("Ingresá tu nombre");
+
+    user = name;
+    loadProgress();
+
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("game").classList.remove("hidden");
+
+    document.getElementById("player").innerText = "Jugador: " + user;
+    loadPuzzle();
+}
+
+function loadProgress() {
+    const data = localStorage.getItem("frozen_" + user);
+    if (data) {
+        const saved = JSON.parse(data);
+        level = saved.level;
+        puzzleIndex = saved.puzzle;
+    } else {
+        level = 1;
+        puzzleIndex = 1;
+        saveProgress();
+    }
+}
+
+function saveProgress() {
+    localStorage.setItem("frozen_" + user, JSON.stringify({
+        level: level,
+        puzzle: puzzleIndex
+    }));
+}
+
+// ================= PUZZLE =================
+
+function loadPuzzle() {
+    size = level + 2;
+    const puzzle = document.getElementById("puzzle");
+    puzzle.innerHTML = "";
+    puzzle.style.gridTemplateColumns = `repeat(${size}, 80px)`;
+    puzzle.style.gridTemplateRows = `repeat(${size}, 80px)`;
+
+    const img = images[puzzleIndex % images.length];
+    tiles = [];
+
+    for (let i = 0; i < size * size; i++) {
+        tiles.push(i);
+    }
+
+    shuffle(tiles);
+    emptyIndex = tiles.indexOf(size * size - 1);
+
+    tiles.forEach((tile, index) => {
+        const div = document.createElement("div");
+        div.className = "piece";
+        div.style.width = "80px";
+        div.style.height = "80px";
+
+        if (tile === size * size - 1) {
+            div.style.background = "transparent";
+        } else {
+            const x = tile % size;
+            const y = Math.floor(tile / size);
+            div.style.backgroundImage = `url(${img})`;
+            div.style.backgroundPosition = `${(-x * 80)}px ${(-y * 80)}px`;
+        }
+
+        div.onclick = () => move(index);
+        puzzle.appendChild(div);
+    });
+
+    document.getElementById("level").innerText = level;
+    document.getElementById("puzzleNum").innerText = puzzleIndex;
+}
+
+function move(index) {
+    const moves = [
+        emptyIndex - 1,
+        emptyIndex + 1,
+        emptyIndex - size,
+        emptyIndex + size
+    ];
+
+    if (moves.includes(index)) {
+        [tiles[emptyIndex], tiles[index]] = [tiles[index], tiles[emptyIndex]];
+        emptyIndex = index;
+        redraw();
+        checkWin();
+    }
+}
+
+function redraw() {
+    const puzzle = document.getElementById("puzzle");
+    [...puzzle.children].forEach((div, i) => {
+        const tile = tiles[i];
+        if (tile === size * size - 1) {
+            div.style.background = "transparent";
+        } else {
+            const x = tile % size;
+            const y = Math.floor(tile / size);
+            div.style.backgroundImage = `url(${images[puzzleIndex % images.length]})`;
+            div.style.backgroundPosition = `${(-x * 80)}px ${(-y * 80)}px`;
+        }
+    });
+}
+
+function checkWin() {
+    for (let i = 0; i < tiles.length; i++) {
+        if (tiles[i] !== i) return;
+    }
+    setTimeout(() => alert("❄️ ¡Rompecabezas completado! ❄️"), 200);
+}
+
+function nextPuzzle() {
+    puzzleIndex++;
+    if (puzzleIndex > TOTAL_PUZZLES) puzzleIndex = 1;
+
+    if (puzzleIndex % 10 === 0 && level < 4) level++;
+
+    saveProgress();
+    loadPuzzle();
+}
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+</script>
+
+</body>
+</html>
