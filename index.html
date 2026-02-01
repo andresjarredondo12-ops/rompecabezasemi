@@ -33,7 +33,6 @@ body{
     margin-top:15px;
     padding:12px 25px;
     font-size:18px;
-    cursor:pointer;
 }
 
 /* JUEGO */
@@ -56,6 +55,7 @@ body{
     border:4px solid #2196f3;
     background-size:cover;
     background-position:center;
+    touch-action:none;
 }
 
 .piece{
@@ -65,13 +65,14 @@ body{
     background-size:300px 300px;
     cursor:grab;
     border:1px solid #fff;
+    touch-action:none;
 }
 
-/* GANASTE */
+/* PANTALLA GANADORA */
 #winScreen{
     position:fixed;
     inset:0;
-    background:linear-gradient(#0d47a1,#42a5f5);
+    background:radial-gradient(circle at top,#1a237e,#000);
     display:none;
     flex-direction:column;
     justify-content:center;
@@ -79,11 +80,13 @@ body{
     z-index:10;
     color:white;
     text-align:center;
+    overflow:hidden;
 }
 
 #winScreen h1{
-    font-size:32px;
+    font-size:30px;
     margin-bottom:20px;
+    z-index:2;
 }
 
 #winScreen button{
@@ -92,20 +95,25 @@ body{
     cursor:pointer;
     border:none;
     background:white;
-    color:#0d47a1;
+    color:#1a237e;
     border-radius:6px;
+    z-index:2;
 }
 
-/* CONFETI */
-.fall{
+/* PARTICULAS */
+.particle{
     position:fixed;
-    top:-20px;
-    font-size:26px;
+    top:-30px;
+    font-size:24px;
     animation:fall linear forwards;
+    pointer-events:none;
 }
 
 @keyframes fall{
-    to{ transform:translateY(110vh); }
+    to{
+        transform:translateY(120vh) translateX(50px);
+        opacity:0;
+    }
 }
 </style>
 </head>
@@ -114,7 +122,7 @@ body{
 
 <!-- INICIO -->
 <div id="startScreen">
-    <h1>🧩 Rompecabezas de Animales 🐶🐱</h1>
+    <h1>🧩 Rompecabezas de Animales 🐾</h1>
     <input type="text" id="usernameInput" placeholder="Tu nombre">
     <button onclick="startGame()">Jugar</button>
 </div>
@@ -135,17 +143,15 @@ body{
 </div>
 
 <script>
-/* ================= IMÁGENES DE ANIMALES ================= */
-// Imágenes públicas y estables
+/* ================= IMÁGENES ANIMALES ================= */
 const baseImages=[
-    "https://images.unsplash.com/photo-1518717758536-85ae29035b6d", // perro
-    "https://images.unsplash.com/photo-1518791841217-8f162f1e1131", // gato
-    "https://images.unsplash.com/photo-1501706362039-c6e80948a59a", // león
-    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee", // elefante
-    "https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0"  // caballo
+    "https://images.unsplash.com/photo-1518717758536-85ae29035b6d",
+    "https://images.unsplash.com/photo-1518791841217-8f162f1e1131",
+    "https://images.unsplash.com/photo-1501706362039-c6e80948a59a",
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
+    "https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0"
 ];
 
-// Generamos 200 niveles
 const images=[];
 for(let i=0;i<200;i++){
     images.push(baseImages[i % baseImages.length]);
@@ -155,6 +161,9 @@ const size=3;
 let currentLevel=0;
 let pieces=[];
 let username="";
+let activePiece=null;
+let offsetX=0;
+let offsetY=0;
 
 /* ================= INICIO ================= */
 function startGame(){
@@ -167,8 +176,8 @@ function startGame(){
     username=input.value.trim();
     document.getElementById("playerName").textContent=username;
 
-    const savedLevel=localStorage.getItem("animal_level_"+username);
-    if(savedLevel) currentLevel=parseInt(savedLevel);
+    const saved=localStorage.getItem("animal_level_"+username);
+    if(saved) currentLevel=parseInt(saved);
 
     document.getElementById("startScreen").style.display="none";
     document.getElementById("game").style.display="block";
@@ -187,44 +196,43 @@ function loadLevel(){
 
     for(let y=0;y<size;y++){
         for(let x=0;x<size;x++){
-            const piece=document.createElement("div");
-            piece.className="piece";
-            piece.style.backgroundImage=`url(${img})`;
-            piece.style.backgroundPosition=`-${x*100}px -${y*100}px`;
-            piece.dataset.correctX=x*100;
-            piece.dataset.correctY=y*100;
+            const p=document.createElement("div");
+            p.className="piece";
+            p.style.backgroundImage=`url(${img})`;
+            p.style.backgroundPosition=`-${x*100}px -${y*100}px`;
+            p.dataset.correctX=x*100;
+            p.dataset.correctY=y*100;
+            p.style.left=Math.random()*200+"px";
+            p.style.top=Math.random()*200+"px";
 
-            piece.style.left=Math.random()*200+"px";
-            piece.style.top=Math.random()*200+"px";
-
-            enableDrag(piece);
-            container.appendChild(piece);
-            pieces.push(piece);
+            enableDrag(p);
+            container.appendChild(p);
+            pieces.push(p);
         }
     }
 
     document.getElementById("level").textContent=currentLevel+1;
 }
 
-/* ================= DRAG ================= */
+/* ================= DRAG TÁCTIL + MOUSE ================= */
 function enableDrag(el){
-    let offsetX,offsetY;
+    el.addEventListener("pointerdown",e=>{
+        activePiece=el;
+        offsetX=e.clientX-el.offsetLeft;
+        offsetY=e.clientY-el.offsetTop;
+        el.setPointerCapture(e.pointerId);
+    });
 
-    el.onmousedown=e=>{
-        offsetX=e.offsetX;
-        offsetY=e.offsetY;
+    el.addEventListener("pointermove",e=>{
+        if(!activePiece) return;
+        activePiece.style.left=(e.clientX-offsetX-puzzleContainer.offsetLeft)+"px";
+        activePiece.style.top =(e.clientY-offsetY-puzzleContainer.offsetTop)+"px";
+    });
 
-        document.onmousemove=ev=>{
-            el.style.left=(ev.pageX-puzzleContainer.offsetLeft-offsetX)+"px";
-            el.style.top =(ev.pageY-puzzleContainer.offsetTop-offsetY)+"px";
-        };
-
-        document.onmouseup=()=>{
-            document.onmousemove=null;
-            document.onmouseup=null;
-            checkWin();
-        };
-    };
+    el.addEventListener("pointerup",()=>{
+        activePiece=null;
+        checkWin();
+    });
 }
 
 /* ================= CHECK ================= */
@@ -243,10 +251,10 @@ function checkWin(){
 /* ================= GANASTE ================= */
 function showWin(){
     document.getElementById("winText").textContent=
-        `🎉 FELICIDADES ${username} GANASTE !!!! 🎉`;
+        `✨ FELICIDADES ${username} GANASTE!!!!! ✨`;
 
     document.getElementById("winScreen").style.display="flex";
-    startConfetti();
+    startParticles();
 }
 
 /* ================= SIGUIENTE ================= */
@@ -258,14 +266,14 @@ function nextLevel(){
     loadLevel();
 }
 
-/* ================= CONFETI ================= */
-function startConfetti(){
-    for(let i=0;i<50;i++){
+/* ================= PARTICULAS ================= */
+function startParticles(){
+    for(let i=0;i<60;i++){
         const el=document.createElement("div");
-        el.className="fall";
+        el.className="particle";
         el.style.left=Math.random()*100+"vw";
         el.style.animationDuration=(2+Math.random()*3)+"s";
-        el.textContent=["💖","❤️","⭐"][Math.floor(Math.random()*3)];
+        el.textContent=Math.random()>0.5?"⭐":"💗";
         document.body.appendChild(el);
         setTimeout(()=>el.remove(),5000);
     }
@@ -274,6 +282,8 @@ function startConfetti(){
 
 </body>
 </html>
+
+
 
 
 
