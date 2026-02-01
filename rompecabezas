@@ -2,8 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Rompecabezas Frozen</title>
+<title>Rompecabezas de Hielo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body {
     margin: 0;
@@ -12,7 +13,7 @@ body {
     text-align: center;
 }
 
-#login, #game {
+.screen {
     padding: 20px;
 }
 
@@ -26,181 +27,196 @@ input {
 button {
     padding: 10px 20px;
     font-size: 16px;
-    margin-top: 10px;
     background: #0288d1;
-    color: white;
+    color: #fff;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
+    margin-top: 10px;
 }
 
 #puzzle {
     display: grid;
     gap: 2px;
     margin: 20px auto;
-    touch-action: manipulation;
 }
 
-.piece {
-    background-size: 100% 100%;
+.tile {
+    width: 80px;
+    height: 80px;
+    background-size: cover;
     cursor: pointer;
 }
 
 .hidden {
     display: none;
 }
-
-h1, h2 {
-    color: #01579b;
-}
 </style>
 </head>
+
 <body>
 
-<div id="login">
-    <h1>❄️ Rompecabezas Frozen ❄️</h1>
+<!-- LOGIN -->
+<div id="login" class="screen">
+    <h1>❄️ Rompecabezas de Hielo ❄️</h1>
     <p>Ingresá tu nombre para jugar</p>
-    <input id="username" placeholder="Tu nombre">
+    <input id="nameInput" placeholder="Tu nombre">
     <br>
-    <button onclick="startGame()">Jugar</button>
+    <button onclick="startGame()">Entrar</button>
 </div>
 
-<div id="game" class="hidden">
-    <h2 id="player"></h2>
-    <p>Nivel: <span id="level"></span> | Rompecabezas: <span id="puzzleNum"></span>/200</p>
+<!-- JUEGO -->
+<div id="game" class="screen hidden">
+    <h2 id="playerName"></h2>
+    <p>Nivel: <span id="level"></span> | Puzzle: <span id="puzzleCount"></span>/200</p>
     <div id="puzzle"></div>
-    <button onclick="nextPuzzle()">Siguiente</button>
+    <button onclick="nextPuzzle()">Siguiente rompecabezas</button>
 </div>
 
 <script>
-// ================= DATOS =================
+/* =========================
+   CONFIGURACIÓN
+========================= */
 
-const images = [
-    "https://i.imgur.com/9QO8F0R.jpg",
-    "https://i.imgur.com/rz7FQ0T.jpg",
-    "https://i.imgur.com/WbYb8wS.jpg",
-    "https://i.imgur.com/2z8F0T4.jpg",
-    "https://i.imgur.com/KQ9QF9g.jpg"
+// 10 imágenes x 20 variaciones = 200 puzzles
+const IMAGES = [
+    "https://images.unsplash.com/photo-1482192596544-9eb780fc7f66",
+    "https://images.unsplash.com/photo-1519681393784-d120267933ba",
+    "https://images.unsplash.com/photo-1483729558449-99ef09a8c325",
+    "https://images.unsplash.com/photo-1486902197509-7c03c422bb1c",
+    "https://images.unsplash.com/photo-1516455207990-7a41ce80f7ee",
+    "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05",
+    "https://images.unsplash.com/photo-1484313544071-4d67c88b99be",
+    "https://images.unsplash.com/photo-1499346030926-9a72daac6c63",
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
+    "https://images.unsplash.com/photo-1483683804023-6ccdb62f86ef"
 ];
 
-// 5 imágenes x 40 variaciones = 200 rompecabezas
 const TOTAL_PUZZLES = 200;
 
-// ================= ESTADO =================
+/* =========================
+   ESTADO
+========================= */
 
-let user = "";
+let player = "";
 let level = 1;
-let puzzleIndex = 0;
+let puzzleNumber = 1;
 let size = 3;
 let tiles = [];
-let emptyIndex = 0;
+let empty = 0;
 
-// ================= LOGIN =================
+/* =========================
+   LOGIN
+========================= */
 
 function startGame() {
-    const name = document.getElementById("username").value.trim();
-    if (!name) return alert("Ingresá tu nombre");
+    const name = document.getElementById("nameInput").value.trim();
+    if (!name) {
+        alert("Ingresá tu nombre");
+        return;
+    }
 
-    user = name;
-    loadProgress();
+    player = name;
+    loadPlayer();
 
     document.getElementById("login").classList.add("hidden");
     document.getElementById("game").classList.remove("hidden");
 
-    document.getElementById("player").innerText = "Jugador: " + user;
+    document.getElementById("playerName").innerText = "Jugador: " + player;
     loadPuzzle();
 }
 
-function loadProgress() {
-    const data = localStorage.getItem("frozen_" + user);
+function loadPlayer() {
+    const data = localStorage.getItem("puzzle_" + player);
     if (data) {
         const saved = JSON.parse(data);
         level = saved.level;
-        puzzleIndex = saved.puzzle;
+        puzzleNumber = saved.puzzle;
     } else {
-        level = 1;
-        puzzleIndex = 1;
-        saveProgress();
+        savePlayer();
     }
 }
 
-function saveProgress() {
-    localStorage.setItem("frozen_" + user, JSON.stringify({
+function savePlayer() {
+    localStorage.setItem("puzzle_" + player, JSON.stringify({
         level: level,
-        puzzle: puzzleIndex
+        puzzle: puzzleNumber
     }));
 }
 
-// ================= PUZZLE =================
+/* =========================
+   PUZZLE
+========================= */
 
 function loadPuzzle() {
-    size = level + 2;
-    const puzzle = document.getElementById("puzzle");
-    puzzle.innerHTML = "";
-    puzzle.style.gridTemplateColumns = `repeat(${size}, 80px)`;
-    puzzle.style.gridTemplateRows = `repeat(${size}, 80px)`;
+    size = Math.min(3 + level - 1, 6);
 
-    const img = images[puzzleIndex % images.length];
+    const board = document.getElementById("puzzle");
+    board.innerHTML = "";
+    board.style.gridTemplateColumns = `repeat(${size}, 80px)`;
+
     tiles = [];
-
     for (let i = 0; i < size * size; i++) {
         tiles.push(i);
     }
 
     shuffle(tiles);
-    emptyIndex = tiles.indexOf(size * size - 1);
+    empty = tiles.indexOf(size * size - 1);
 
-    tiles.forEach((tile, index) => {
+    const img = IMAGES[puzzleNumber % IMAGES.length];
+
+    tiles.forEach((val, idx) => {
         const div = document.createElement("div");
-        div.className = "piece";
-        div.style.width = "80px";
-        div.style.height = "80px";
+        div.className = "tile";
 
-        if (tile === size * size - 1) {
+        if (val === size * size - 1) {
             div.style.background = "transparent";
         } else {
-            const x = tile % size;
-            const y = Math.floor(tile / size);
+            const x = val % size;
+            const y = Math.floor(val / size);
             div.style.backgroundImage = `url(${img})`;
             div.style.backgroundPosition = `${(-x * 80)}px ${(-y * 80)}px`;
+            div.style.backgroundSize = `${size * 80}px ${size * 80}px`;
         }
 
-        div.onclick = () => move(index);
-        puzzle.appendChild(div);
+        div.onclick = () => moveTile(idx);
+        board.appendChild(div);
     });
 
     document.getElementById("level").innerText = level;
-    document.getElementById("puzzleNum").innerText = puzzleIndex;
+    document.getElementById("puzzleCount").innerText = puzzleNumber;
 }
 
-function move(index) {
+function moveTile(index) {
     const moves = [
-        emptyIndex - 1,
-        emptyIndex + 1,
-        emptyIndex - size,
-        emptyIndex + size
+        empty - 1,
+        empty + 1,
+        empty - size,
+        empty + size
     ];
 
-    if (moves.includes(index)) {
-        [tiles[emptyIndex], tiles[index]] = [tiles[index], tiles[emptyIndex]];
-        emptyIndex = index;
-        redraw();
-        checkWin();
-    }
+    if (!moves.includes(index)) return;
+
+    [tiles[empty], tiles[index]] = [tiles[index], tiles[empty]];
+    empty = index;
+    redraw();
+    checkWin();
 }
 
 function redraw() {
-    const puzzle = document.getElementById("puzzle");
-    [...puzzle.children].forEach((div, i) => {
-        const tile = tiles[i];
-        if (tile === size * size - 1) {
-            div.style.background = "transparent";
+    const board = document.getElementById("puzzle").children;
+    const img = IMAGES[puzzleNumber % IMAGES.length];
+
+    for (let i = 0; i < tiles.length; i++) {
+        if (tiles[i] === size * size - 1) {
+            board[i].style.background = "transparent";
         } else {
-            const x = tile % size;
-            const y = Math.floor(tile / size);
-            div.style.backgroundImage = `url(${images[puzzleIndex % images.length]})`;
-            div.style.backgroundPosition = `${(-x * 80)}px ${(-y * 80)}px`;
+            const x = tiles[i] % size;
+            const y = Math.floor(tiles[i] / size);
+            board[i].style.backgroundImage = `url(${img})`;
+            board[i].style.backgroundPosition = `${(-x * 80)}px ${(-y * 80)}px`;
+            board[i].style.backgroundSize = `${size * 80}px ${size * 80}px`;
         }
-    });
+    }
 }
 
 function checkWin() {
@@ -211,24 +227,24 @@ function checkWin() {
 }
 
 function nextPuzzle() {
-    puzzleIndex++;
-    if (puzzleIndex > TOTAL_PUZZLES) puzzleIndex = 1;
+    puzzleNumber++;
+    if (puzzleNumber > TOTAL_PUZZLES) puzzleNumber = 1;
 
-    if (puzzleIndex % 10 === 0 && level < 4) level++;
+    if (puzzleNumber % 10 === 0 && level < 4) {
+        level++;
+    }
 
-    saveProgress();
+    savePlayer();
     loadPuzzle();
 }
 
-function shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
     }
 }
 </script>
 
 </body>
 </html>
-
-
