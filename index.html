@@ -1,316 +1,278 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Frozen Puzzle - 200 Niveles</title>
-    <style>
-        :root {
-            --frozen-blue: #00d4ff;
-            --ice-white: #f0f8ff;
-            --gold-bg: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fcf6ba, #aa771c);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frozen Puzzle - 200 Niveles</title>
 
-        body {
-            margin: 0;
-            font-family: 'Arial Rounded MT Bold', sans-serif;
-            background: #0a192f;
-            color: white;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
+<style>
+:root {
+    --frozen-blue: #00d4ff;
+    --ice-white: #f0f8ff;
+    --gold-bg: linear-gradient(45deg, #bf953f, #fcf6ba, #b38728, #fcf6ba, #aa771c);
+}
 
-        /* --- PANTALLA INICIAL --- */
-        #login-screen {
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 40px;
-            border-radius: 20px;
-            border: 2px solid var(--frozen-blue);
-            box-shadow: 0 0 30px var(--frozen-blue);
-            z-index: 10;
-        }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0a192f;
+    color: white;
+    overflow: hidden;
+}
 
-        input {
-            padding: 15px;
-            font-size: 1.2rem;
-            border-radius: 10px;
-            border: none;
-            margin: 20px 0;
-            width: 80%;
-        }
+#login-screen {
+    text-align: center;
+    background: rgba(0,0,0,.7);
+    padding: 40px;
+    border-radius: 20px;
+    border: 2px solid var(--frozen-blue);
+    box-shadow: 0 0 30px var(--frozen-blue);
+}
 
-        button {
-            padding: 15px 30px;
-            font-size: 1.2rem;
-            background: var(--frozen-blue);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
+input, button {
+    padding: 15px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+    border: none;
+    margin-top: 15px;
+}
 
-        button:hover { transform: scale(1.1); background: white; color: #0074D9; }
+button {
+    background: var(--frozen-blue);
+    color: white;
+    cursor: pointer;
+}
 
-        /* --- ÁREA DE JUEGO --- */
-        #game-screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+#game-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+}
 
-        #puzzle-board {
-            width: 500px;
-            height: 500px;
-            background: rgba(255,255,255,0.1);
-            position: relative;
-            border: 4px solid var(--frozen-blue);
-            margin-top: 20px;
-        }
+#puzzle-board {
+    width: 500px;
+    height: 500px;
+    position: relative;
+    margin-top: 20px;
+    border: 4px solid var(--frozen-blue);
+}
 
-        .piece {
-            position: absolute;
-            cursor: move;
-            border: 1px solid rgba(255,255,255,0.4);
-            background-repeat: no-repeat;
-            z-index: 5;
-        }
+.piece {
+    position: absolute;
+    cursor: grab;
+    background-repeat: no-repeat;
+}
 
-        /* --- PANTALLA GANADORA --- */
-        #victory-screen {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--gold-bg);
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
+#victory-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--gold-bg);
+    z-index: 100;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
 
-        #victory-text {
-            font-size: 3.5rem;
-            color: #5d4037;
-            text-align: center;
-            font-weight: bold;
-            text-shadow: 2px 2px 10px rgba(255,255,255,0.5);
-            margin-bottom: 30px;
-        }
+#victory-text {
+    font-size: 3rem;
+    color: #5d4037;
+}
 
-        canvas#particle-canvas {
-            position: absolute;
-            top: 0; left: 0; pointer-events: none;
-        }
-
-        .info-panel { text-align: center; font-size: 1.5rem; margin-bottom: 10px; }
-    </style>
+canvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+</style>
 </head>
+
 <body>
 
-    <div id="login-screen">
-        <h1>FROZEN ADVENTURE</h1>
-        <p>Bienvenido al Reino de Hielo</p>
-        <input type="text" id="username" placeholder="Tu Nombre Aquí...">
-        <br>
-        <button onclick="initPlayer()">COMENZAR PARTIDA</button>
-    </div>
+<div id="login-screen">
+    <h1>❄️ FROZEN ADVENTURE ❄️</h1>
+    <input id="username" placeholder="Tu nombre">
+    <br>
+    <button onclick="initPlayer()">COMENZAR</button>
+</div>
 
-    <div id="game-screen">
-        <div class="info-panel">
-            <div id="user-name-display"></div>
-            <div>Nivel: <span id="level-num">1</span> / 200</div>
-        </div>
-        <div id="puzzle-board"></div>
-    </div>
+<div id="game-screen">
+    <h2 id="user-name"></h2>
+    <h3>Nivel <span id="level-num">1</span> / 200</h3>
+    <div id="puzzle-board"></div>
+</div>
 
-    <div id="victory-screen">
-        <canvas id="particle-canvas"></canvas>
-        <h1 id="victory-text"></h1>
-        <button onclick="loadNextLevel()" style="background:#5d4037">SIGUIENTE NIVEL</button>
-    </div>
+<div id="victory-screen">
+    <canvas id="particle-canvas"></canvas>
+    <h1 id="victory-text"></h1>
+    <button onclick="nextLevel()">SIGUIENTE NIVEL</button>
+</div>
 
-    <script>
-        let user = "";
-        let level = 1;
-        const board = document.getElementById('puzzle-board');
-        const db_key = "frozen_game_data_2026";
+<script>
+let user = "";
+let level = 1;
+const dbKey = "frozen_progress";
+const board = document.getElementById("puzzle-board");
 
-        // Imágenes estables de Frozen
-        const frozenImages = [
-            "https://wallpaperaccess.com/full/1595180.jpg",
-            "https://wallpaperaccess.com/full/1595182.jpg",
-            "https://wallpaperaccess.com/full/192271.jpg",
-            "https://wallpaperaccess.com/full/192283.jpg",
-            "https://wallpaperaccess.com/full/1595208.jpg"
-        ];
+/* IMÁGENES REALES DE FROZEN */
+const frozenImages = [
+    "https://wallpaperaccess.com/full/1595180.jpg", // Elsa
+    "https://wallpaperaccess.com/full/1595182.jpg", // Anna
+    "https://wallpaperaccess.com/full/192271.jpg",  // Olaf
+    "https://wallpaperaccess.com/full/192283.jpg",
+    "https://wallpaperaccess.com/full/1595208.jpg"
+];
 
-        function initPlayer() {
-            const inputName = document.getElementById('username').value;
-            if (!inputName) return alert("Por favor, ingresa tu nombre");
-            
-            user = inputName;
-            let storage = JSON.parse(localStorage.getItem(db_key)) || {};
-            
-            if (storage[user]) {
-                level = storage[user].level;
-            } else {
-                level = 1;
-                storage[user] = { level: 1 };
-                localStorage.setItem(db_key, JSON.stringify(storage));
-            }
+function initPlayer() {
+    user = username.value.trim();
+    if (!user) return alert("Ingresá tu nombre");
 
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'flex';
-            setupGame();
+    let db = JSON.parse(localStorage.getItem(dbKey)) || {};
+    if (db[user]) level = db[user];
+    else db[user] = 1;
+
+    localStorage.setItem(dbKey, JSON.stringify(db));
+
+    login-screen.style.display = "none";
+    game-screen.style.display = "flex";
+
+    document.getElementById("user-name").innerText = "Jugador: " + user;
+    loadLevel();
+}
+
+function loadLevel() {
+    board.innerHTML = "";
+    document.getElementById("level-num").innerText = level;
+
+    let size = Math.min(2 + Math.floor(level / 10), 8);
+    const img = frozenImages[(level - 1) % frozenImages.length];
+    const pieceSize = 500 / size;
+
+    let positions = [];
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            positions.push({x,y});
         }
+    }
+    positions.sort(() => Math.random() - 0.5);
 
-        function setupGame() {
-            board.innerHTML = "";
-            document.getElementById('user-name-display').innerText = "Jugador: " + user;
-            document.getElementById('level-num').innerText = level;
+    let index = 0;
+    for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+            const piece = document.createElement("div");
+            piece.className = "piece";
+            piece.style.width = pieceSize + "px";
+            piece.style.height = pieceSize + "px";
+            piece.style.backgroundImage = `url(${img})`;
+            piece.style.backgroundSize = "500px 500px";
+            piece.style.backgroundPosition = `-${x*pieceSize}px -${y*pieceSize}px`;
 
-            // Dificultad: empieza 2x2, escala cada 10 niveles
-            let size = 2 + Math.floor(level / 10);
-            if (size > 8) size = 8; // Máximo 8x8 para que sea jugable
+            piece.dataset.cx = x * pieceSize;
+            piece.dataset.cy = y * pieceSize;
 
-            const imgUrl = frozenImages[(level - 1) % frozenImages.length];
-            const pWidth = 500 / size;
-            const pHeight = 500 / size;
+            piece.style.left = positions[index].x * pieceSize + "px";
+            piece.style.top = positions[index].y * pieceSize + "px";
 
-            for (let r = 0; r < size; r++) {
-                for (let c = 0; c < size; c++) {
-                    const piece = document.createElement('div');
-                    piece.className = 'piece';
-                    piece.style.width = pWidth + 'px';
-                    piece.style.height = pHeight + 'px';
-                    piece.style.backgroundImage = `url('${imgUrl}')`;
-                    piece.style.backgroundSize = "500px 500px";
-                    piece.style.backgroundPosition = `-${c * pWidth}px -${r * pHeight}px`;
-                    
-                    // Guardar posición correcta
-                    piece.dataset.correctX = c * pWidth;
-                    piece.dataset.correctY = r * pHeight;
-
-                    // Posición inicial aleatoria fuera del tablero (zona de piezas)
-                    piece.style.left = (Math.random() * (window.innerWidth - pWidth)) + 'px';
-                    piece.style.top = (Math.random() * (window.innerHeight - pHeight)) + 'px';
-
-                    addDragLogic(piece);
-                    document.body.appendChild(piece);
-                }
-            }
+            drag(piece);
+            board.appendChild(piece);
+            index++;
         }
+    }
+}
 
-        function addDragLogic(el) {
-            let isDragging = false;
-            let offX, offY;
+function drag(el) {
+    let dx, dy, dragging = false;
 
-            el.onmousedown = (e) => {
-                isDragging = true;
-                offX = e.clientX - el.offsetLeft;
-                offY = e.clientY - el.offsetTop;
-                el.style.zIndex = 1000;
-            };
+    el.onmousedown = e => {
+        dragging = true;
+        dx = e.offsetX;
+        dy = e.offsetY;
+        el.style.zIndex = 10;
+    };
 
-            document.onmousemove = (e) => {
-                if (!isDragging) return;
-                el.style.left = (e.clientX - offX) + 'px';
-                el.style.top = (e.clientY - offY) + 'px';
-            };
+    document.onmousemove = e => {
+        if (!dragging) return;
+        el.style.left = e.pageX - board.offsetLeft - dx + "px";
+        el.style.top = e.pageY - board.offsetTop - dy + "px";
+    };
 
-            document.onmouseup = () => {
-                if (!isDragging) return;
-                isDragging = false;
-                
-                const boardRect = board.getBoundingClientRect();
-                const currentX = parseFloat(el.style.left) - boardRect.left;
-                const currentY = parseFloat(el.style.top) - boardRect.top;
-                const targetX = parseFloat(el.dataset.correctX);
-                const targetY = parseFloat(el.dataset.correctY);
+    document.onmouseup = () => {
+        if (!dragging) return;
+        dragging = false;
 
-                // Si está cerca del lugar correcto (margen de 30px)
-                if (Math.abs(currentX - targetX) < 30 && Math.abs(currentY - targetY) < 30) {
-                    el.style.left = (boardRect.left + targetX) + 'px';
-                    el.style.top = (boardRect.top + targetY) + 'px';
-                    el.classList.add('placed');
-                    el.style.zIndex = 1;
-                    el.onmousedown = null; // Bloquear pieza en su lugar
-                    checkWin();
-                }
-            };
+        let x = Math.round(parseInt(el.style.left) / (500 / Math.sqrt(board.children.length)));
+        let y = Math.round(parseInt(el.style.top) / (500 / Math.sqrt(board.children.length)));
+
+        if (Math.abs(el.offsetLeft - el.dataset.cx) < 20 &&
+            Math.abs(el.offsetTop - el.dataset.cy) < 20) {
+
+            el.style.left = el.dataset.cx + "px";
+            el.style.top = el.dataset.cy + "px";
+            el.classList.add("fixed");
+            el.onmousedown = null;
+
+            checkWin();
         }
+    };
+}
 
-        function checkWin() {
-            const total = document.querySelectorAll('.piece').length;
-            const placed = document.querySelectorAll('.placed').length;
-            if (total > 0 && total === placed) {
-                showVictory();
-            }
-        }
+function checkWin() {
+    if (document.querySelectorAll(".fixed").length === board.children.length) {
+        showVictory();
+    }
+}
 
-        function showVictory() {
-            const vText = document.getElementById('victory-text');
-            vText.innerText = `¡¡¡FELICIDADES GANASTE ${user.toUpperCase()}!!!`;
-            document.getElementById('victory-screen').style.display = 'flex';
-            
-            // Actualizar nivel en "Base de Datos"
-            level++;
-            let storage = JSON.parse(localStorage.getItem(db_key));
-            storage[user].level = level;
-            localStorage.setItem(db_key, JSON.stringify(storage));
+function showVictory() {
+    document.getElementById("victory-screen").style.display = "flex";
+    document.getElementById("victory-text").innerText =
+        `🎉 FELICIDADES ${user.toUpperCase()} GANASTE !!! 🎉`;
+    startParticles();
 
-            startParticles();
-        }
+    let db = JSON.parse(localStorage.getItem(dbKey));
+    db[user] = ++level;
+    localStorage.setItem(dbKey, JSON.stringify(db));
+}
 
-        function loadNextLevel() {
-            location.reload(); // Recarga para limpiar piezas y cargar nuevo nivel
-        }
+function nextLevel() {
+    document.getElementById("victory-screen").style.display = "none";
+    loadLevel();
+}
 
-        // --- EFECTOS DE CORAZONES Y ESTRELLAS ---
-        function startParticles() {
-            const canvas = document.getElementById('particle-canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+/* EFECTOS */
+function startParticles() {
+    const canvas = document.getElementById("particle-canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
 
-            const particles = [];
-            for(let i=0; i<100; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    size: Math.random() * 20 + 10,
-                    speed: Math.random() * 3 + 1,
-                    type: Math.random() > 0.4 ? 'heart' : 'star',
-                    color: ['#ff4d6d', '#ff0000', '#00d4ff'][Math.floor(Math.random() * 3)]
-                });
-            }
+    let items = Array.from({length:80}, () => ({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        s: Math.random()*20+10,
+        v: Math.random()*2+1,
+        t: Math.random()>0.5?"❤️":"⭐",
+        c: ["#ff4d6d","#ff0000","#00d4ff"][Math.floor(Math.random()*3)]
+    }));
 
-            function draw() {
-                ctx.clearRect(0,0, canvas.width, canvas.height);
-                particles.forEach(p => {
-                    ctx.fillStyle = p.color;
-                    if(p.type === 'heart') {
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, p.size/2, Math.PI, 0);
-                        ctx.arc(p.x + p.size/2, p.y, p.size/2, Math.PI, 0);
-                        ctx.lineTo(p.x + p.size/2, p.y + p.size);
-                        ctx.lineTo(p.x - p.size/2, p.y);
-                        ctx.fill();
-                    } else {
-                        // Estrella simple
-                        ctx.font = p.size + "px Arial";
-                        ctx.fillText("★", p.x, p.y);
-                    }
-                    p.y += p.speed;
-                    if(p.y > canvas.height) p.y = -20;
-                });
-                requestAnimationFrame(draw);
-            }
-            draw();
-        }
-    </script>
+    function anim() {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        items.forEach(p=>{
+            ctx.fillStyle=p.c;
+            ctx.font=p.s+"px Arial";
+            ctx.fillText(p.t,p.x,p.y);
+            p.y+=p.v;
+            if(p.y>canvas.height) p.y=-20;
+        });
+        requestAnimationFrame(anim);
+    }
+    anim();
+}
+</script>
+
 </body>
 </html>
+
+
 
 
 
