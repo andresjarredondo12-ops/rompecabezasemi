@@ -13,7 +13,7 @@ body {
     overflow: hidden;
 }
 
-/* PANTALLA INICIO */
+/* INICIO */
 #startScreen {
     position: fixed;
     inset: 0;
@@ -46,6 +46,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 18px;
 }
 
 #puzzleContainer {
@@ -53,8 +54,9 @@ body {
     width: 300px;
     height: 300px;
     margin: 20px auto;
-    border: 3px solid #2196f3;
+    border: 4px solid #1e88e5;
     background-size: cover;
+    background-position: center;
 }
 
 .piece {
@@ -63,38 +65,48 @@ body {
     height: 100px;
     background-size: 300px 300px;
     cursor: grab;
-    border: 1px solid #fff;
+    border: 1px solid white;
 }
 
-/* GANASTE */
+/* PANTALLA GANADORA */
 #winScreen {
     position: fixed;
     inset: 0;
-    background: rgba(255,255,255,0.95);
+    background: linear-gradient(#0d47a1, #42a5f5);
     display: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     z-index: 10;
+    color: white;
+    text-align: center;
 }
 
 #winScreen h1 {
-    font-size: 32px;
-    color: #e91e63;
+    font-size: 34px;
+    margin-bottom: 20px;
+}
+
+#winScreen button {
+    padding: 14px 30px;
+    font-size: 18px;
+    cursor: pointer;
+    border: none;
+    background: #ffffff;
+    color: #0d47a1;
+    border-radius: 6px;
 }
 
 /* CONFETI */
 .fall {
     position: fixed;
     top: -20px;
-    font-size: 24px;
-    animation: fall 4s linear infinite;
+    font-size: 26px;
+    animation: fall linear forwards;
 }
 
 @keyframes fall {
-    to {
-        transform: translateY(110vh);
-    }
+    to { transform: translateY(110vh); }
 }
 </style>
 </head>
@@ -103,7 +115,7 @@ body {
 
 <!-- INICIO -->
 <div id="startScreen">
-    <h1>🧩 Rompecabezas Frozen</h1>
+    <h1>❄️ Rompecabezas Frozen ❄️</h1>
     <input type="text" id="usernameInput" placeholder="Tu nombre">
     <button onclick="startGame()">Jugar</button>
 </div>
@@ -112,38 +124,48 @@ body {
 <div id="game">
     <div id="topBar">
         <div>Jugador: <b id="playerName"></b></div>
-        <div>Nivel: <b id="level">1</b></div>
+        <div>Nivel: <b id="level"></b> / 200</div>
     </div>
-
     <div id="puzzleContainer"></div>
 </div>
 
 <!-- GANASTE -->
 <div id="winScreen">
     <h1 id="winText"></h1>
-    <button onclick="nextLevel()">Siguiente nivel</button>
+    <button onclick="nextLevel()">Próxima partida</button>
 </div>
 
 <script>
-/* === CONFIG === */
-const images = [
+/* ================= CONFIG ================= */
+
+// 5 imágenes base Frozen
+const baseImages = [
     "https://i.imgur.com/7qV9FZL.jpg", // Elsa
     "https://i.imgur.com/Z9xJ0cM.jpg", // Anna
     "https://i.imgur.com/3rZ3K0n.jpg", // Olaf
     "https://i.imgur.com/qYF1X8U.jpg", // Elsa 2
-    "https://i.imgur.com/VN0M6hM.jpg"  // Frozen grupo
+    "https://i.imgur.com/VN0M6hM.jpg"  // Grupo
 ];
-// podés repetir / agregar hasta 200 imágenes
+
+// Genera 200 combinaciones
+const images = [];
+for (let i = 0; i < 200; i++) {
+    images.push(baseImages[i % baseImages.length]);
+}
 
 const size = 3;
 let currentLevel = 0;
 let pieces = [];
 let username = "";
 
-/* === INICIO === */
+/* ================= INICIO ================= */
+
 function startGame() {
     const input = document.getElementById("usernameInput");
-    if (!input.value.trim()) return alert("Ingresá tu nombre");
+    if (!input.value.trim()) {
+        alert("Ingresá tu nombre");
+        return;
+    }
 
     username = input.value.trim();
     localStorage.setItem("frozenUser", username);
@@ -155,13 +177,14 @@ function startGame() {
     loadLevel();
 }
 
-/* === CARGA NIVEL === */
+/* ================= NIVEL ================= */
+
 function loadLevel() {
     const container = document.getElementById("puzzleContainer");
     container.innerHTML = "";
     pieces = [];
 
-    const img = images[currentLevel % images.length];
+    const img = images[currentLevel];
     container.style.backgroundImage = `url(${img})`;
 
     for (let y = 0; y < size; y++) {
@@ -185,7 +208,8 @@ function loadLevel() {
     document.getElementById("level").textContent = currentLevel + 1;
 }
 
-/* === DRAG === */
+/* ================= DRAG ================= */
+
 function enableDrag(el) {
     let offsetX, offsetY;
 
@@ -195,7 +219,7 @@ function enableDrag(el) {
 
         document.onmousemove = ev => {
             el.style.left = (ev.pageX - puzzleContainer.offsetLeft - offsetX) + "px";
-            el.style.top  = (ev.pageY - puzzleContainer.offsetTop - offsetY) + "px";
+            el.style.top = (ev.pageY - puzzleContainer.offsetTop - offsetY) + "px";
         };
 
         document.onmouseup = () => {
@@ -206,23 +230,27 @@ function enableDrag(el) {
     };
 }
 
-/* === CHECK === */
+/* ================= CHECK ================= */
+
 function checkWin() {
-    let ok = true;
+    let win = true;
+
     pieces.forEach(p => {
         if (
             Math.abs(parseInt(p.style.left) - p.dataset.correctX) > 10 ||
             Math.abs(parseInt(p.style.top) - p.dataset.correctY) > 10
-        ) ok = false;
+        ) win = false;
     });
 
-    if (ok) showWin();
+    if (win) showWin();
 }
 
-/* === GANASTE === */
+/* ================= GANASTE ================= */
+
 function showWin() {
     document.getElementById("winText").textContent =
-        `🎉 Felicidades ${username}, ganaste!!! 🎉`;
+        `❄️ FELICIDADES ${username} GANASTE !!!! ❄️`;
+
     document.getElementById("winScreen").style.display = "flex";
     startConfetti();
 }
@@ -230,15 +258,21 @@ function showWin() {
 function nextLevel() {
     document.getElementById("winScreen").style.display = "none";
     currentLevel++;
+
+    if (currentLevel >= images.length) {
+        currentLevel = 0;
+    }
+
     loadLevel();
 }
 
-/* === CONFETI === */
+/* ================= CONFETI ================= */
+
 function startConfetti() {
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 50; i++) {
         const el = document.createElement("div");
         el.className = "fall";
-        el.style.left = Math.random()*100 + "vw";
+        el.style.left = Math.random() * 100 + "vw";
         el.style.animationDuration = (2 + Math.random()*3) + "s";
         el.textContent = ["💖","❤️","⭐"][Math.floor(Math.random()*3)];
         document.body.appendChild(el);
@@ -247,7 +281,8 @@ function startConfetti() {
     }
 }
 
-/* === AUTO USER === */
+/* ================= AUTO USER ================= */
+
 window.onload = () => {
     const saved = localStorage.getItem("frozenUser");
     if (saved) document.getElementById("usernameInput").value = saved;
@@ -256,6 +291,8 @@ window.onload = () => {
 
 </body>
 </html>
+
+
 
 
 
